@@ -12,7 +12,7 @@ from models import Link
 
 class BasePage(webapp.RequestHandler):
 
-    def __init__(self):
+    def __init__(self, request=None, response=None):
         (self.user, self.login_url, self.logout_url) = self.auth_data()
         self.user_is_admin = users.is_current_user_admin()
         self.template_values = {
@@ -20,8 +20,9 @@ class BasePage(webapp.RequestHandler):
             "user_is_admin":self.user_is_admin,
             "login_url":self.login_url, 
             "logout_url":self.logout_url,
-            "debug":config.SITE["debug"],
+            "debug":True, # config.SITE["debug"],
         } 
+        super(BasePage, self).__init__(request, response)
 
     def auth_data(self):
         """Returns: (user, login_url, logout_url)"""
@@ -50,10 +51,12 @@ class Index(BasePage):
     def post(self):
         url = self.request.get("url")
         custom_path = self.request.get("custom_path")
-        if custom_path:
-            exists = Link.filter("path =", custom_path).get()
-            if exists:
-                return "path already exists, choose another"
+        #if custom_path:
+        #    exists = Link.filter("path =", custom_path).get()
+        #    if exists:
+        #        return "path already exists, choose another"
+        link = Link(url=url, custom_path=custom_path)
+        link.put()
         
 class Stats(BasePage):
     """
@@ -61,7 +64,7 @@ class Stats(BasePage):
     """
 
     def get(self):
-        links = Link.filter("user =", self.user).order_by_count_desc().fetch(config.SITE["max_stats"])
+        links = Link.filter("user =", self.user).order_by_count_desc().fetch(10) # config.SITE["max_stats"])
         self.template_values.update({"links":links})
         self.render("stats.html", self.template_values) 
 
@@ -71,7 +74,10 @@ class Expand(BasePage):
     """
 
     def get(self, path):
-        linkobj = Link.get_link_by_path(path)
+        #linkobj = Link.get_link_by_url(path)
+        #linkobj = Link.get_by_key_name(path)
+        linkobj = Link.gql('WHERE custom_path = :custom_path', custom_path=path).get()
+        #linkobj = Link.get({'custom_path':path}) # , read_policy=db.STRONG_CONSISTENCY)
         #account for 404, log it.
         linkobj.count += 1
         linkobj.put()

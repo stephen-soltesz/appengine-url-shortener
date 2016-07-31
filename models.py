@@ -8,6 +8,6 @@ from google.appengine.api import memcache
 class Link(db.Model):
     user = db.UserProperty()
     url = db.LinkProperty()
-    custom_path = db.BooleanProperty(default=False)
+    custom_path = db.StringProperty()
     count = db.IntegerProperty(default=0)
     created = db.DateTimeProperty(auto_now_add=True)
